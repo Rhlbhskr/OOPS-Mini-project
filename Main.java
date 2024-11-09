@@ -1,19 +1,19 @@
 // fund transfers
-// BankAccount.java
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
 
-public class BankAccount {
+class BankAccount {
     private String accountNumber;
     private String accountHolder;
     private double balance;
 
-    // Constructor
     public BankAccount(String accountNumber, String accountHolder, double initialBalance) {
         this.accountNumber = accountNumber;
         this.accountHolder = accountHolder;
         this.balance = initialBalance;
     }
 
-    // Getters
     public String getAccountNumber() {
         return accountNumber;
     }
@@ -26,14 +26,12 @@ public class BankAccount {
         return balance;
     }
 
-    // Deposit method
     public void deposit(double amount) {
         if (amount > 0) {
             balance += amount;
         }
     }
 
-    // Withdraw method
     public boolean withdraw(double amount) {
         if (amount > 0 && balance >= amount) {
             balance -= amount;
@@ -44,11 +42,10 @@ public class BankAccount {
         }
     }
 
-    // Transfer method
     public boolean transferFunds(BankAccount toAccount, double amount) {
         if (this.withdraw(amount)) {
             toAccount.deposit(amount);
-            System.out.println("Transfer successful. Transferred " + amount + " to " + toAccount.getAccountHolder());
+            System.out.println("Transfer successful! Transferred " + amount + " to " + toAccount.getAccountHolder());
             return true;
         } else {
             System.out.println("Transfer failed. Insufficient balance.");
@@ -57,27 +54,54 @@ public class BankAccount {
     }
 }
 
-// Main.java
+public class BankManagementSystem {
+    private static Map<String, BankAccount> accounts = new HashMap<>();
 
-public class Main {
     public static void main(String[] args) {
-        // Create two bank accounts
-        BankAccount account1 = new BankAccount("12345", "Alice", 1000.00);
-        BankAccount account2 = new BankAccount("67890", "Bob", 500.00);
+        Scanner scanner = new Scanner(System.in);
 
-        // Display initial balances
-        System.out.println("Initial Balance:");
-        System.out.println("Alice's Balance: $" + account1.getBalance());
-        System.out.println("Bob's Balance: $" + account2.getBalance());
+        // Sample accounts
+        accounts.put("12345", new BankAccount("12345", "Alice", 1000.00));
+        accounts.put("67890", new BankAccount("67890", "Bob", 500.00));
 
-        // Transfer funds from Alice to Bob
-        double transferAmount = 200.00;
-        System.out.println("\nAttempting to transfer $" + transferAmount + " from Alice to Bob...");
-        boolean success = account1.transferFunds(account2, transferAmount);
+        // Take sender account input
+        System.out.print("Enter Sender Account Number: ");
+        String senderAccountNumber = scanner.nextLine();
+        BankAccount senderAccount = accounts.get(senderAccountNumber);
 
-        // Display final balances
-        System.out.println("\nFinal Balance:");
-        System.out.println("Alice's Balance: $" + account1.getBalance());
-        System.out.println("Bob's Balance: $" + account2.getBalance());
+        if (senderAccount == null) {
+            System.out.println("Sender account not found.");
+            return;
+        }
+
+        // Take receiver account input
+        System.out.print("Enter Receiver Account Number: ");
+        String receiverAccountNumber = scanner.nextLine();
+        BankAccount receiverAccount = accounts.get(receiverAccountNumber);
+
+        if (receiverAccount == null) {
+            System.out.println("Receiver account not found.");
+            return;
+        }
+
+        // Take transfer amount input
+        System.out.print("Enter Amount to Transfer: ");
+        double transferAmount = scanner.nextDouble();
+
+        // Perform the transfer
+        if (transferAmount > 0) {
+            System.out.println("\nAttempting to transfer $" + transferAmount + " from " + senderAccount.getAccountHolder()
+                    + " to " + receiverAccount.getAccountHolder() + "...");
+            senderAccount.transferFunds(receiverAccount, transferAmount);
+
+            // Display final balances
+            System.out.println("\nFinal Balances:");
+            System.out.println(senderAccount.getAccountHolder() + "'s Balance: $" + senderAccount.getBalance());
+            System.out.println(receiverAccount.getAccountHolder() + "'s Balance: $" + receiverAccount.getBalance());
+        } else {
+            System.out.println("Invalid transfer amount.");
+        }
+        
+        scanner.close();
     }
 }
