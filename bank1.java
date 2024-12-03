@@ -1,7 +1,6 @@
 import java.util.*;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
@@ -70,6 +69,7 @@ class admin
                     else 
                     {
                         System.out.println("Incorrect password. Please try again.");
+                        return 0;
                     }
                 }  
             }
@@ -86,6 +86,93 @@ class admin
 
     }
 
+    public void viewcustomer()
+    {
+        try (BufferedReader br = new BufferedReader(new FileReader("data.csv")))
+        {
+            String line;
+            //System.out.println("\nCustomers are: ");
+            int people = 0;
+            while ((line = br.readLine()) != null)
+            {
+                if (people == 0)
+                {
+                    System.out.println("\nCustomers are: ");
+                    people++;
+                }
+                String[] values = line.split(",");
+                if (values[2].equals(" Name"))
+                continue;
+                System.out.println(people + " " + values[2]);
+                people++;
+            }
+            if (people == 0)
+            {
+                System.out.println("No customers exist.");
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void enabledisablecus(Scanner scan)
+    {
+        viewcustomer();
+        System.out.print("Enter the sno of customer you want to enable/disable: ");
+        int sno = scan.nextInt();
+        ArrayList<String []> csvData = new ArrayList<String []>();
+        try (BufferedReader br = new BufferedReader(new FileReader("data.csv")))
+        {
+            String line;
+            while ((line = br.readLine()) != null)
+            {
+                csvData.add(line.split(","));
+            }
+            
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
+        int people = 0;
+        for (String [] row : csvData)
+        {
+            //System.out.println("row before" + row[24]);
+            if (people == sno)
+            {
+               // System.out.println("Customer: " + row[2]);
+                if (row[24].equals("true"))
+                {
+                    row[24] = "false";
+                    System.out.println("Customer is now disabled and can not access their account.");
+                   // System.out.println("row after: " + row[24]);
+                    break;
+                }
+                else
+                {
+                    row[24] = "true";
+                    System.out.println("Customer is now enabled and can access their account.");
+                   // System.out.println("row after: " + row[24]);
+                    break;
+                }
+            }
+            people++;
+        }
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("data.csv")))
+        {
+            for (String [] row : csvData)
+            {
+                bw.write(String.join(",", row) + "\n");
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
 
     public void data(String [] values)
     {
@@ -98,6 +185,20 @@ class admin
         terms.b = convertStringToArrayList(values[6]);
     }
 
+    public void viewbookings()
+    {
+        if (terms.b.size() == 0) 
+        {
+            System.out.println("No bookings.");
+            return;
+        }
+        System.out.println("\nBookings are: ");
+        int sno = 1;
+        for (booking b : terms.b)
+        {
+            System.out.println(sno + ". With " + b.getname() + " on " + b.getdate() + " at " + b.gettime());
+        }
+    }
 
 
     public ArrayList<booking> convertStringToArrayList(String s)
@@ -142,7 +243,7 @@ class admin
         try (FileWriter writer = new FileWriter("admins.csv", true))
         {
             //writer.append ("Username, Password, Name, Phone Number, Email ID, Position, Bookings\n");
-            writer.append(un + "," + pw + "," + n + "," + pn + "," + em + "," + p + "," + convertArrayListToString(terms.b) + "\n");
+            writer.append(un + "," + pw + "," + n + "," + pn + "," + em + "," + p + "," + convertArrayListToString(new ArrayList<booking>()) + "\n");
         }
         catch (IOException e)
         {
@@ -184,7 +285,6 @@ class admin
             }
 
             boolean updated = false;
-
             for (String [] row : csvData)
             {
                 if (row[0].equals(admin.un) | row[2].equals(admin.name))
@@ -231,7 +331,55 @@ class admin
         return sb.toString();
     }
 
+    public void customerBookingUpdate(booking b)
+    {
+        ArrayList<String []> csvData = new ArrayList<String []>();
+        try (BufferedReader br = new BufferedReader(new FileReader("data.csv")))
+        {
+            String line;
+            while ((line = br.readLine()) != null)
+            {
+                csvData.add(line.split(","));    
+            }
+        }
+        catch (Exception e) 
+        {
+            e.printStackTrace();
+        }
 
+        ArrayList<booking> b1 = new ArrayList<>();
+        String row1 = "";
+        for (String [] row : csvData)
+        {
+            if (row[2].equals(b.getname()))
+            {
+                row1 = row[21];
+                b1 = convertStringToArrayList(row1);
+                for (int i = 0; i < b1.size(); i++)
+                {
+                    if (b1.get(i).getname().equals(name) && b1.get(i).getdate().equals(b.getdate()) && b1.get(i).gettime().equals(b.gettime()))
+                    {
+                    b1.remove(b1.get(i));
+                    }
+                }
+                row[21] = convertArrayListToString(b1);
+                break;
+            }
+        }
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("data.csv")))
+        {
+            for (String [] row : csvData)
+            {
+                bw.write(String.join(",", row));
+                bw.newLine();
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
 
     public void removebooking(Scanner scan)
     {
@@ -245,21 +393,18 @@ class admin
         {
             System.out.println((i + 1) + ". " + terms.b.get(i).getdate() + " " + terms.b.get(i).gettime());
         }
-        System.out.print("Enter date of booking to remove: ");
-        String date = scan.next();
-        int removed = 0, tired = 0;
+        System.out.print("Enter option no.: ");
+        int option = scan.nextInt();
+        int removed = 0;
         for (int i = 0; i < terms.b.size(); i++)
         {
-            if (terms.b.get(i).getdate().equals(date) && tired == 0)
+            if (i == option - 1)
             {
-                System.out.print("Enter time of booking to remove: ");
-                String time = scan.next(); tired = 1;
-                if (terms.b.get(i).gettime().equals(time))
-                {
-                    removed = 1;
-                    terms.b.remove(i);
-                    break;
-                }
+                removed = 1;
+                customerBookingUpdate(terms.b.get(i));
+                terms.b.remove(i);
+                System.out.println("Booking removed");
+                break;
             }
         }
         if (removed == 0)
@@ -334,7 +479,7 @@ class LoanManagementSystem
         boolean validLoanType = false;
         while (true)
         {
-            System.out.println("Available loan types: ");
+            System.out.println("\nAvailable loan types: ");
             int sno = 1;
             for (String[] lt : LoanApplication.loans)
             {
@@ -368,7 +513,7 @@ class LoanManagementSystem
             double loanAmount = scan.nextDouble();
             System.out.print("Enter the loan term(in months): ");
             int loanTerm = scan.nextInt();
-            System.out.println("Enter the repayment schedule(Monthly/Quarterly/Annually): ");
+            System.out.print("Enter the repayment schedule(Monthly/Quarterly/Annually): ");
             String repaymentSchedule = scan.next();
             if (terms.balance >= 6500 && terms.aturnover >= 2000)
             {
@@ -382,6 +527,7 @@ class LoanManagementSystem
             {
                 System.out.println("Sorry! Your loan has been Declined");
             }
+            //terms.l.add(new LoanApplication(loanType, interestRate, loanAmount, loanTerm, repaymentSchedule));
         }
     }
 
@@ -528,7 +674,7 @@ class FDManagementSystem
         int typeoption = 0;
         while (true)
         {
-            System.out.println("\nFD Types are: \n1.Standard FD \n2. Tax Savings \n3. Cumulative \n4. Non-Cumulative");
+            System.out.println("\nFD Types are: \n1. Standard FD \n2. Tax Savings \n3. Cumulative \n4. Non-Cumulative");
             System.out.print("Enter FD Type you want to create (0: to not create any FD): ");
             typeoption = scan.nextInt();
             if (typeoption == 0)
@@ -571,6 +717,7 @@ class FDManagementSystem
             int fdtenure = scan.nextInt();
             boolean isCumulative = (fdtype == "Cumulative");
             terms.fdRecords.add(new FixedDeposit(fdid, fdtype, principalfdAmount, fdinterestRate, fdtenure, isCumulative));
+            terms.points += 20;
             System.out.println("FD created successfully.");
             terms.t.add(new transactions("FDcreated", principalfdAmount, terms.balance));
         }
@@ -647,6 +794,7 @@ class FDManagementSystem
                     terms.balance += payoutAmount;
                     terms.fdRecords.remove(fd);
                     terms.t.add(new transactions("FDwithdrawal", payoutAmount, terms.balance));
+                    terms.points += 100;
                     return;
                 }
             }
@@ -717,13 +865,14 @@ class AppointmentSystem
                 System.out.print("Enter your choice: ");
                 int choice = scan.nextInt();
                 terms.b.add(new booking(name, date, admin.timeSlots[timings.size() + choice - 1]));
-                admin.bookings = bookings; 
+                admin.bookings = bookings; //terms.b.add(bookings);
                 admin.name = name;
                 admin.customerName = terms.accountHolder;
                 admin.customerDate = date;
                 admin.customerTime = admin.timeSlots[timings.size() + choice - 1];
                 a.adminlogout();
-                System.out.println("Booking confirmed with " + name + " on " + date + " at " + admin.timeSlots[choice - 1]);
+                terms.points += 10;
+                System.out.println("Booking confirmed with " + name + " on " + date + " at " + admin.timeSlots[timings.size() +choice - 1]);
                 break;
             }
 
@@ -734,12 +883,17 @@ class AppointmentSystem
     {
         if (terms.b.isEmpty())
         {
-            System.out.println("No bookings to cancel.");
+            System.out.println("No appointments to cancel.");
             return;
         }
         viewappointments(scan);
-        System.out.print("Which booking do you want to cancel? (0: to not cancel any booking): ");
+        System.out.print("Which appointment do you want to cancel? (0: to not cancel any booking): ");
         int cancelchoice = scan.nextInt();
+        if (cancelchoice == 0)
+        {
+            System.out.println("Appointment not cancelled.");
+            return;
+        }
         admin.name = terms.b.get(cancelchoice - 1).getname();
         admin.customerName = terms.accountHolder;
         admin.customerDate = terms.b.get(cancelchoice - 1).getdate();
@@ -747,17 +901,17 @@ class AppointmentSystem
         admin a = new admin();
         a.adminlogout();
         terms.b.remove(cancelchoice - 1);
-        System.out.println("Booking cancelled");
+        System.out.println("Appointment cancelled");
     }
 
     public void viewappointments(Scanner scan)
     {
         if (terms.b.size() == 0)
         {
-            System.out.println("\nNo bookings done yet");
+            System.out.println("\nNo appointments done yet");
             return;
         }
-        System.out.println("\nYour bookings are: ");
+        System.out.println("\nYour appointments are: ");
         for (int i = 0; i < terms.b.size(); i++)
         {
             System.out.println((i + 1) + ". With " + terms.b.get(i).getname() + " on " + terms.b.get(i).getdate() + " at " + terms.b.get(i).gettime());
@@ -771,7 +925,7 @@ class login
     int enter()
     {
         Scanner scan  = new Scanner(System.in);
-        System.out.println("Username: ");
+        System.out.print("Username: ");
         String username = scan.next();
         int found = 0;
         try (BufferedReader br = new BufferedReader(new FileReader("data.csv")))
@@ -782,12 +936,34 @@ class login
                 String[] values = line.split(",");
                 if (values[0].equals(username))
                 {
-                    System.out.println("Password: ");
+                    System.out.print("Password: ");
                     String password = scan.next();
                     if (values[1].equals(password))
                     {
-                        System.out.println("Login successful.");
                         data(values);
+                        if (terms.enabled == false)
+                        {
+                            System.out.println("Your account is disabled. Please contact the admin.");
+                            try (BufferedReader br1 = new BufferedReader(new FileReader("admins.csv")))
+                            {
+                                String line1;
+                                System.out.println("Contact Details: ");
+                                int lineno = 0;
+                                while ((line1 = br1.readLine()) != null)
+                                {
+                                    if (lineno != 0)
+                                    {
+                                        String[] values1 = line1.split(",");
+                                        System.out.println("Phone number: " + values1[3]);
+                                        System.out.println("Email: " + values1[4]);
+                                        return 0;
+                                    }
+                                    lineno++;
+                                }
+                            }
+                        }
+                        System.out.println("Login successful.");
+                        //data(values);
                         found = 1;
                         return 1;
                     }
@@ -838,6 +1014,8 @@ class login
         terms.b = a.convertStringToArrayList(values[21]);
         terms.fdRecords = FixedDeposit.convertStringToArrayList(values[22]);
         terms.l = LoanApplication.convertStringtoArrayList(values[23]);
+        terms.enabled = values[24].equals("true") ? true : false;
+        terms.targetAmount = Double.parseDouble(values[25]);
     }
 
     public static String convertArrayListToString(ArrayList<transactions> list) 
@@ -866,7 +1044,6 @@ class login
             String[] arr1 = num.split(":");
             list.add(new transactions(arr1[0], Double.parseDouble(arr1[1]), Double.parseDouble(arr1[2])));
         }
-
         return list;
     }
 
@@ -973,6 +1150,8 @@ class login
                     row[21] = admin.convertArrayListToString(terms.b);
                     row[22] = FixedDeposit.convertArrayListToString(terms.fdRecords);
                     row[23] = LoanApplication.convertArrayListToString(terms.l);
+                    row[24] = terms.enabled ? "true" : "false";
+                    row[25] = Double.toString(terms.targetAmount);
                     updated = true;
                     break;
                 }
@@ -1203,12 +1382,10 @@ class Signup
 }
 
 class Rewards
-{
-    //private int points;
-    
+{   
     public void getPoints()
     {
-        terms.points = terms.t.size()/100;
+        //terms.points = terms.t.size()/100;
         System.out.println("Points: " + terms.points);
 
     }
@@ -1400,7 +1577,6 @@ class Rewards
                 System.out.println("Invalid option, try again");
             }
         }
-        
     }
 }
 
@@ -1414,9 +1590,9 @@ class Goal
     public Goal(String goalName, double targetAmount, int monthsToSave, double currentAmount)
     {
         this.goalName = goalName;
-        this.targetAmount = targetAmount;
+        //terms.targetAmount = terms.targetAmount;
         this.monthsToSave = monthsToSave;
-        terms.currentAmount = currentAmount;
+        terms.currentAmount += currentAmount;
     }
 
     public String getGoalName()
@@ -1426,7 +1602,7 @@ class Goal
 
     public double getTargetAmount()
     {
-        return targetAmount;
+        return terms.targetAmount;
     }
 
     public double getCurrentAmount()
@@ -1441,9 +1617,10 @@ class Goal
 
     public int display()
     {
-        if (targetAmount == 0)
+        if (terms.targetAmount == 0)
         return 0;
-        System.out.println("Goal: " + goalName + "\nTarget Amount: " + targetAmount + "\nCurrent Amount Saved: " + terms.currentAmount + "\nMonths to Save: " + monthsToSave);
+        System.out.println("Target Amount: " + terms.targetAmount + "\nCurrent Amount Saved: " + terms.currentAmount);
+        //System.out.println("Goal: " + goalName + "\nTarget Amount: " + targetAmount + "\nCurrent Amount Saved: " + terms.currentAmount + "\nMonths to Save: " + monthsToSave);
         return 1;
     }
 
@@ -1459,7 +1636,7 @@ class Goal
             System.out.println("Insufficient funds");
             return;
         }
-        else if (terms.currentAmount + amt > targetAmount)
+        else if (terms.currentAmount + amt > terms.targetAmount)
         {
             System.out.println("Cannot save more than your target. Please try again");
             return;
@@ -1470,6 +1647,7 @@ class Goal
             terms.balance -= amt;
             terms.points += (amt * 0.01);
             terms.t.add(new transactions("Goal Deposit", amt, terms.balance));
+            terms.points += (amt * 0.01);
             System.out.println("Amount added successfully.\nNew saved amount: " + terms.currentAmount);
         }
     }
@@ -1511,6 +1689,7 @@ class terms
     static int points;
     static int pused;
     static double currentAmount = 0; //goal management
+    static double targetAmount = 0;
     static ArrayList<transactions> t = new ArrayList<transactions>();
     static String DOB;
     static String gender;
@@ -1529,21 +1708,22 @@ class terms
     static ArrayList<booking> b = new ArrayList<booking>();
     static ArrayList<FixedDeposit> fdRecords = new ArrayList<FixedDeposit>();
     static ArrayList<LoanApplication> l = new ArrayList<LoanApplication>();
+    static boolean enabled = true;
+
 
     static void Person (String n, String dob, String g, String pn, String em, String eid, String idexpiry, String ntlty, String cn, String d, double an, String wa, String uname, String pword, String iban, int AID)
     {
         set_default();
         try (FileWriter writer = new FileWriter("data.csv",true))
         {
-            //writer.append("UserName, Password, Name, DOB, Gender, Phone Number, Email ID, Emirates ID, ID Expiry Date, Nationality, Company Name, Designation, Annual Turnover, Work Address, IBAN, Account ID, Balance, Points, Points Used, Current Amount Saved in Goal, Transactions, Bookings, Fixed Deposits, Loans\n");
-            writer.append(uname + "," + pword + "," + n + "," + dob + "," + g + "," + pn + "," + em + "," + eid + "," + idexpiry + "," + ntlty + "," + cn + "," + d + "," + an + "," + wa + "," + iban + "," + AID + ","+ balance + "," + points + "," + pused + "," + currentAmount + ","  +  login.convertArrayListToString(t) + "," + admin.convertArrayListToString(b) + "," + FixedDeposit.convertArrayListToString(fdRecords) + "," + LoanApplication.convertArrayListToString(l)+ "\n");
+           // writer.append("UserName, Password, Name, DOB, Gender, Phone Number, Email ID, Emirates ID, ID Expiry Date, Nationality, Company Name, Designation, Annual Turnover, Work Address, IBAN, Account ID, Balance, Points, Points Used, Current Amount Saved in Goal, Transactions, Bookings, Fixed Deposits, Loans, Enabled, Target Amount\n");
+            writer.append(uname + "," + pword + "," + n + "," + dob + "," + g + "," + pn + "," + em + "," + eid + "," + idexpiry + "," + ntlty + "," + cn + "," + d + "," + an + "," + wa + "," + iban + "," + AID + ","+ balance + "," + points + "," + pused + "," + currentAmount + ","  +  login.convertArrayListToString(t) + "," + admin.convertArrayListToString(b) + "," + FixedDeposit.convertArrayListToString(fdRecords) + "," + LoanApplication.convertArrayListToString(l)+ "," + "true" +  "," + targetAmount + "\n");
         }
         catch (IOException e) 
         {
             // Handle the exception (e.g., print an error message)
             e.printStackTrace();
         }
-        //set_default();
     }
 
     
@@ -1590,15 +1770,13 @@ class Transfer
         {
             if (found == 0)
             {
-                System.out.println("Enter the receiver's account number(0: Exit): ");
+                System.out.print("Enter the receiver's account number(0: Exit): ");
                 receiverAccountID = scan.next();
                 for (int i = 0; i < csvData.size(); i++)
                 {
-                    //System.out.println("Receiver: " + csvData.get(i)[19]);
                     if (csvData.get(i)[15].equals(receiverAccountID))
                     {
                         balancer = Double.parseDouble(csvData.get(i)[16]);
-                        //System.out.println("Receiver in: " + csvData.get(i)[19]);
                         tr = login.convertStringToArrayList(csvData.get(i)[20]);
                         found = 1;
                         break;
@@ -1625,6 +1803,7 @@ class Transfer
                 balancer += amount;
                 terms.t.add(new transactions("Transfered", amount, terms.balance));
                 tr.add(new transactions("Received", amount, balancer));
+                terms.points += (amount * 0.02);
                 for (int i = 0; i < csvData.size(); i++)
                 {
                     if (csvData.get(i)[15].equals(receiverAccountID))
@@ -1649,7 +1828,6 @@ class Transfer
                 System.out.println("Transfer successful.");
                 break;
             }
-            
         }
     }
 }
@@ -1684,8 +1862,7 @@ class transactions
 
 
 class deposits_withdrawals
-{
-    
+{   
     deposits_withdrawals(double b)
     {
         terms.balance = b;
@@ -1700,6 +1877,7 @@ class deposits_withdrawals
                 terms.balance -= amount;
                 display();
                 terms.t.add(new transactions("Withdrawal", amount, terms.balance));
+                terms.points += (amount * 0.01);
             }
             else
             {
@@ -1755,7 +1933,7 @@ public class bank1
         {
             System.out.println("\n1. Sign up");
             System.out.println("2. Login");
-            System.out.println("3. Admin related works");
+            System.out.println("3. Admin");
             System.out.println("4. Exit");
             System.out.print("Enter your choice: ");
             int option1 = scan.nextInt();
@@ -1774,12 +1952,6 @@ public class bank1
                 {
                     continue;
                 }
-
-                /*if (terms.t.getFirst().gettype().equals("New"))
-                if (terms.t.get(0).gettype().equals("New"))
-                {
-                    terms.t.clear();
-                } */
 
                 System.out.println("\nWelcome " + terms.accountHolder);
                 Goal goal = new Goal("",0,0,0);
@@ -1838,7 +2010,7 @@ public class bank1
                     }
                     else if (option2 == 3)
                     {
-                        deposits_withdrawals dw = new deposits_withdrawals(terms.balance); //b-balance
+                        deposits_withdrawals dw = new deposits_withdrawals(terms.balance); 
                         while (true)
                         {
                             System.out.println("\n1. Withdraw amount");
@@ -1848,7 +2020,7 @@ public class bank1
                             int option3 = scan.nextInt();
                             if (option3 == 3)
                             break;
-                            System.out.println("Amount: ");
+                            System.out.print("Amount: ");
                             int amount = scan.nextInt();
                             if (option3 == 1)
                             {
@@ -1897,6 +2069,7 @@ public class bank1
                                 case 4:
                                     System.out.println("Exiting the FD Management System. Goodbye!");
                                     flow = false;
+                                    break;
                                 default:
                                     System.out.println("Invalid option selected. Please try again.");
                             }
@@ -1912,7 +2085,7 @@ public class bank1
                             System.out.println("2. View your previous loan applications");
                             System.out.println("3. Repay a loan");
                             System.out.println("4. Exit\n");
-                            System.out.println("Select your choice: ");
+                            System.out.print("Select your choice: ");
                             int option3 = scan.nextInt();
                             if (option3 == 1)
                             {
@@ -1948,7 +2121,7 @@ public class bank1
                             System.out.println("4. Withdraw from you Savings");
                             System.out.println("5. Extend the time limit");
                             System.out.println("6. Exit\n");
-                            System.out.println("Select your choice: ");
+                            System.out.print("Select your choice: ");
                             int option3 = scan.nextInt();
 
                             if (option3 == 1)
@@ -1961,24 +2134,24 @@ public class bank1
                                     System.out.print("How many Months do you want to save for (Range: 1-6): ");
                                     int months = scan.nextInt();
                                     System.out.print("Target Amount: ");
-                                    double target = scan.nextDouble();
-                                    goal = new Goal("Short-term", target, months, 0);
+                                    terms.targetAmount += scan.nextDouble();
+                                    goal = new Goal("Short-term", terms.targetAmount, months, 0);
                                 }
                                 else if (plan == 2)
                                 {
                                     System.out.print("How many Months do you want to save for (Range: 7-12): ");
                                     int months = scan.nextInt();
                                     System.out.print("Target Amount: ");
-                                    double target = scan.nextDouble();
-                                    goal = new Goal("Medium-term", target, months, 0);
+                                    terms.targetAmount += scan.nextDouble();
+                                    goal = new Goal("Medium-term", terms.targetAmount, months, 0);
                                 }
                                 else if (plan == 3)
                                 {
                                     System.out.print("How many Months do you want to save for (Range: 13-24): ");
                                     int months = scan.nextInt();
                                     System.out.print("Target Amount: ");
-                                    double target = scan.nextDouble();
-                                    goal = new Goal("Long-term", target, months, 0);
+                                    terms.targetAmount += scan.nextDouble();
+                                    goal = new Goal("Long-term", terms.targetAmount, months, 0);
                                 }
                                 else if (plan == 4)
                                 {
@@ -2017,6 +2190,7 @@ public class bank1
 
                         }
                         
+                        //Goal goal = new Goal("Short-term", 5)
                         //shahna
                     }
                     else if(option2 == 9)
@@ -2060,7 +2234,7 @@ public class bank1
                     else if(option2 == 10)
                     {
                         l.logout();
-                        System.out.println("logged out successfully");
+                        System.out.println("Logged out successfully");
                         break;
                     }
                     else
@@ -2072,6 +2246,87 @@ public class bank1
             }
             else if (option1 == 3)
             {
+                admin a = new admin();
+
+        while (true)
+        {
+            System.out.println("\n1. Login");
+            System.out.println("2. Exit");
+            System.out.print("Enter your choice: ");
+            int select = scan.nextInt();
+
+            if (select == 1)
+            {
+                if (a.enter() == 0)
+                {
+                    System.out.println("Login failed.");
+                    continue;
+                }
+                while (true)
+                {
+                    System.out.println("\n1. Create new admin");
+                    System.out.println("2. View all admins");
+                    System.out.println("3. View bookings");
+                    System.out.println("4. Remove a booking");
+                    System.out.println("5. View your customers");
+                    System.out.println("6. Enable/Disable a customer");
+                    System.out.println("7. Logout\n");
+                    System.out.print("Enter your choice: ");
+                    int option = scan.nextInt();
+
+                    if (option == 1)
+                    {
+                        System.out.print("\nEnter Name: ");
+                        String n = scan.next();
+                        System.out.print("Enter phone number: ");
+                        String pn = scan.next();
+                        System.out.print("Enter email ID: ");
+                        String em = scan.next();
+                        System.out.print("Enter position: ");
+                        String p = scan.next();
+                        System.out.print("Enter username: ");
+                        String un = scan.next();
+                        System.out.print("Enter password: ");
+                        String pw = scan.next();
+                        a.createadmin(un, pw, n, pn, em, p);
+                    }
+                    else if (option == 2)
+                    {
+                        a.viewadmin();
+                    }
+                    else if (option == 3)
+                    {
+                        a.viewbookings();
+                    }
+                    else if (option == 4)
+                    {
+                        a.removebooking(scan);
+                    }
+                    else if (option == 5)
+                    {
+                        a.viewcustomer();
+                    }
+                    else if (option == 6)
+                    {
+                        a.enabledisablecus(scan);
+                    }
+                    else if (option == 7)
+                    {
+                        a.adminlogout();
+                        break;
+                    }
+                    else
+                    System.out.println("Wrong option selected");
+                }
+            }
+
+            else if (select == 2)
+            {
+                break;
+            }
+            else
+            System.out.println("Wrong option selected");
+        }
                 //admin method
             }
             else if (option1 == 4)
